@@ -3,6 +3,7 @@ import streamlit as st
 import anthropic
 import pandas as pd
 from datetime import datetime
+import hmac
 
 # ページ設定
 st.set_page_config(
@@ -11,6 +12,48 @@ st.set_page_config(
     layout="wide"
 )
 
+# 🔐 パスワード認証（最初に追加）
+def check_password():
+    """パスワード認証機能"""
+    def password_entered():
+        # Streamlit Cloudのsecretsから取得、ない場合はデフォルト
+        correct_password = st.secrets.get("password", "krafton2024")
+        
+        if hmac.compare_digest(st.session_state["password"], correct_password):
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]
+        else:
+            st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        st.title("🔐 マーケティング予算最適化AI")
+        st.info("👋 KRAFTON Japan 社内ツールです。パスワードを入力してください。")
+        st.text_input(
+            "パスワード", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.caption("初期パスワード: krafton2024")
+        return False
+    elif not st.session_state["password_correct"]:
+        st.title("🔐 マーケティング予算最適化AI")
+        st.text_input(
+            "パスワード", 
+            type="password", 
+            on_change=password_entered, 
+            key="password"
+        )
+        st.error("😕 パスワードが間違っています")
+        return False
+    else:
+        return True
+
+# パスワード認証をチェック
+if not check_password():
+    st.stop()
+
+# ここから通常のアプリコード
 # タイトル
 st.title("📊 マーケティング予算最適化AI v2.0")
 st.caption("実績データに基づく現実的な予算配分案を提案")
@@ -19,15 +62,23 @@ st.markdown("---")
 # サイドバー: APIキー入力
 with st.sidebar:
     st.header("⚙️ 設定")
-    api_key = st.text_input("Claude API Key", type="password")
+    
+    # APIキーの取得（Streamlit Cloudのsecretsから、なければ手動入力）
+    if "ANTHROPIC_API_KEY" in st.secrets:
+        api_key = st.secrets["ANTHROPIC_API_KEY"]
+        st.success("✅ APIキー設定済み")
+    else:
+        api_key = st.text_input("Claude API Key", type="password")
+        if api_key:
+            st.success("✅ APIキー入力済み")
+    
     st.markdown("---")
     st.markdown("### 使い方")
     st.markdown("""
-    1. API Keyを入力
-    2. プロジェクト情報を入力
-    3. マーケティング施策を選択
-    4. **参考データを入力（重要）**
-    5. 分析実行
+    1. プロジェクト情報を入力
+    2. マーケティング施策を選択
+    3. **参考データを確認・編集**
+    4. 分析実行
     """)
     st.markdown("---")
     st.markdown("### v2.0 新機能")
@@ -266,7 +317,7 @@ Early Access段階のため段階的な投資が必要
 # 分析実行ボタン
 if st.button("🚀 予算最適化を実行", type="primary", use_container_width=True):
     if not api_key:
-        st.error("⚠️ Claude API Keyを入力してください")
+        st.error("⚠️ Claude API Keyを入力してください（サイドバー）")
     elif not selected_tactics:
         st.error("⚠️ 最低1つのマーケティング施策を選択してください")
     elif total_marketing_budget <= 0:
@@ -280,7 +331,7 @@ if st.button("🚀 予算最適化を実行", type="primary", use_container_widt
                 # 選択された施策リストを整形
                 tactics_list = "\n".join([f"- {tactic}" for tactic in selected_tactics])
                 
-                # プロンプト構築
+                # プロンプト構築（前バージョンと同じ）
                 prompt = f"""
 あなたはゲームパブリッシングのマーケティング予算最適化の専門家です。以下の情報を基に、最適なマーケティング予算配分案を作成してください。
 
@@ -543,4 +594,12 @@ if st.button("🚀 予算最適化を実行", type="primary", use_container_widt
 
 # フッター
 st.markdown("---")
-st.markdown("**マーケティング予算最適化AI v2.0 - 実績データ対応版 - Internal Tool**")
+col_footer1, col_footer2, col_footer3 = st.columns(3)
+with col_footer1:
+    st.caption("**マーケティング予算最適化AI v2.0**")
+with col_footer2:
+    st.caption("KRAFTON Japan K.K. - Internal Tool")
+with col_footer3:
+    if st.button("🚪 ログアウト"):
+        st.session_state["password_correct"] = False
+        st.rerun()
