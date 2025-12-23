@@ -162,18 +162,18 @@ def check_password():
                     else:
                         st.error("ユーザー名またはパスワードが間違っています")
         
-#        with st.expander("テスト用アカウント情報"):
-#            st.caption("Secretsが未設定の場合、以下でログインできます：")
-#            st.code("ユーザー名: admin\nパスワード: krafton2024")
-#    
-#    if "password_correct" not in st.session_state:
-#        login_form()
-#        return False
-#    elif not st.session_state["password_correct"]:
-#        login_form()
-#        return False
-#    else:
-#        return True
+    #   with st.expander("テスト用アカウント情報"):
+    #       st.caption("Secretsが未設定の場合、以下でログインできます：")
+    #       st.code("ユーザー名: admin\nパスワード: krafton2024")
+
+    if "password_correct" not in st.session_state:
+        login_form()
+        return False
+    elif not st.session_state["password_correct"]:
+        login_form()
+        return False
+    else:
+        return True
 
 # パスワード認証をチェック
 if not check_password():
